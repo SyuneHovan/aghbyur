@@ -70,6 +70,22 @@ app.get('/recipes/:id', async (req, res) => {
   }
 });
 
+// READ: Get all unique categories
+app.get('/categories', async (req, res) => {
+  try {
+    // This SQL query selects each unique category only once
+    const categoryResult = await pool.query(
+      "SELECT DISTINCT category FROM recipes WHERE category IS NOT NULL AND category <> '' ORDER BY category ASC"
+    );
+    // The result is an array of objects, so we map it to a simple array of strings
+    const categories = categoryResult.rows.map(row => row.category);
+    res.json(categories);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
 // UPDATE: Edit a recipe by ID
 app.put('/recipes/:id', async (req, res) => {
   try {
