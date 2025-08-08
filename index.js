@@ -62,10 +62,7 @@ app.get('/recipes/:id', async (req, res) => {
     }
 
     const recipe = recipeResult.rows[0];
-    recipe.ingredients = JSON.parse(recipe.ingredients || '[]');
-    recipe.steps = JSON.parse(recipe.steps || '[]');
-
-    res.json(recipe);
+    res.json(recipe); // Send the recipe object directly
 
   } catch (err) {
     console.error(err.message);
