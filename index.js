@@ -65,10 +65,20 @@ app.put('/recipes/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { title, category, cover_image_url, ingredients, steps } = req.body;
+
+    // The fix is to explicitly stringify the JSON fields
     const updateRecipe = await pool.query(
       "UPDATE recipes SET title = $1, category = $2, cover_image_url = $3, ingredients = $4, steps = $5 WHERE id = $6 RETURNING *",
-      [title, category, cover_image_url, ingredients, steps, id]
+      [
+        title,
+        category,
+        cover_image_url,
+        JSON.stringify(ingredients), // Convert ingredients to a JSON string
+        JSON.stringify(steps),       // Convert steps to a JSON string
+        id
+      ]
     );
+
     if (updateRecipe.rows.length === 0) {
       return res.status(404).send("Recipe not found.");
     }
