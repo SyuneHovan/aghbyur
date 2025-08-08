@@ -55,11 +55,18 @@ app.get('/recipes', async (req, res) => {
 app.get('/recipes/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const recipe = await pool.query("SELECT * FROM recipes WHERE id = $1", [id]);
-    if (recipe.rows.length === 0) {
+    const recipeResult = await pool.query("SELECT * FROM recipes WHERE id = $1", [id]);
+
+    if (recipeResult.rows.length === 0) {
       return res.status(404).send("Recipe not found.");
     }
-    res.json(recipe.rows[0]);
+
+    const recipe = recipeResult.rows[0];
+    recipe.ingredients = JSON.parse(recipe.ingredients || '[]');
+    recipe.steps = JSON.parse(recipe.steps || '[]');
+
+    res.json(recipe);
+
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
