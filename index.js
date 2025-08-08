@@ -1,111 +1,98 @@
 // Import required packages
 require('dotenv').config();
 const express = require('express');
-const { Pool } = require('pg'); // <-- Import the pg Pool
+const { Pool } = require('pg');
 
 // Create the Express app
 const app = express();
-const port = 3000;
+// Increase the JSON payload limit for images and complex recipes
+app.use(express.json({ limit: '5mb' }));
 
 // Create a new PostgreSQL connection pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-// This middleware is needed to parse JSON from the request body
-app.use(express.json());
-
 // A simple route to test that the server is working
 app.get('/', (req, res) => {
-  res.send('Welcome to the CRUD API!');
+  res.send('Welcome to the Krakaran Recipe API!');
 });
 
-// CREATE: Add a new task
-app.post('/tasks', async (req, res) => {
+// CREATE: Add a new recipe
+app.post('/recipes', async (req, res) => {
   try {
-    const { description } = req.body;
-    const newTask = await pool.query(
-      "INSERT INTO tasks (description) VALUES($1) RETURNING *",
-      [description]
+    const { title, category, cover_image_url, ingredients, steps } = req.body;
+    const newRecipe = await pool.query(
+      "INSERT INTO recipes (title, category, cover_image_url, ingredients, steps) VALUES($1, $2, $3, $4, $5) RETURNING *",
+      [title, category, cover_image_url, ingredients, steps]
     );
-    res.status(201).json(newTask.rows[0]);
+    res.status(201).json(newRecipe.rows[0]);
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
   }
 });
 
-// READ: Get all tasks
-app.get('/tasks', async (req, res) => {
+// READ: Get all recipes (just main fields, not full details)
+app.get('/recipes', async (req, res) => {
   try {
-    const allTasks = await pool.query("SELECT * FROM tasks ORDER BY id ASC");
-    res.json(allTasks.rows);
+    // We only select key fields for the list view to keep it fast
+    const allRecipes = await pool.query("SELECT id, title, category, cover_image_url FROM recipes ORDER BY created_at DESC");
+    res.json(allRecipes.rows);
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
   }
 });
 
-// READ: Get a single task by ID
-app.get('/tasks/:id', async (req, res) => {
+// READ: Get a single recipe by ID (with all details)
+app.get('/recipes/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const task = await pool.query("SELECT * FROM tasks WHERE id = $1", [id]);
-
-    if (task.rows.length === 0) {
-      return res.status(404).send("Task not found.");
+    const recipe = await pool.query("SELECT * FROM recipes WHERE id = $1", [id]);
+    if (recipe.rows.length === 0) {
+      return res.status(404).send("Recipe not found.");
     }
-    
-    res.json(task.rows[0]);
+    res.json(recipe.rows[0]);
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
   }
 });
 
-// UPDATE: Edit a task by ID
-app.put('/tasks/:id', async (req, res) => {
+// UPDATE: Edit a recipe by ID
+app.put('/recipes/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { description, completed } = req.body;
-
-    const updateTask = await pool.query(
-      "UPDATE tasks SET description = $1, completed = $2 WHERE id = $3 RETURNING *",
-      [description, completed, id]
+    const { title, category, cover_image_url, ingredients, steps } = req.body;
+    const updateRecipe = await pool.query(
+      "UPDATE recipes SET title = $1, category = $2, cover_image_url = $3, ingredients = $4, steps = $5 WHERE id = $6 RETURNING *",
+      [title, category, cover_image_url, ingredients, steps, id]
     );
-
-    if (updateTask.rows.length === 0) {
-      return res.status(404).send("Task not found.");
+    if (updateRecipe.rows.length === 0) {
+      return res.status(404).send("Recipe not found.");
     }
-
-    res.json(updateTask.rows[0]);
+    res.json(updateRecipe.rows[0]);
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
   }
 });
 
-// DELETE: Remove a task by ID
-app.delete('/tasks/:id', async (req, res) => {
+// DELETE: Remove a recipe by ID
+app.delete('/recipes/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const deleteTask = await pool.query("DELETE FROM tasks WHERE id = $1 RETURNING *", [id]);
-
-    if (deleteTask.rows.length === 0) {
-      return res.status(404).send("Task not found.");
+    const deleteRecipe = await pool.query("DELETE FROM recipes WHERE id = $1 RETURNING *", [id]);
+    if (deleteRecipe.rows.length === 0) {
+      return res.status(404).send("Recipe not found.");
     }
-
-    res.json({ message: "Task deleted successfully" });
+    res.json({ message: "Recipe deleted successfully" });
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
   }
 });
-
-// Start the server (not needed for vercel)
-// app.listen(port, () => {
-//   console.log(`Server is running on http://localhost:${port}`);
-// });
 
 // Export the app for Vercel
 module.exports = app;
