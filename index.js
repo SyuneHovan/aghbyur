@@ -24,7 +24,13 @@ app.post('/recipes', async (req, res) => {
     const { title, category, cover_image_url, ingredients, steps } = req.body;
     const newRecipe = await pool.query(
       "INSERT INTO recipes (title, category, cover_image_url, ingredients, steps) VALUES($1, $2, $3, $4, $5) RETURNING *",
-      [title, category, cover_image_url, ingredients, steps]
+      [
+        title,
+        category,
+        cover_image_url,
+        JSON.stringify(ingredients), // Convert ingredients to a JSON string
+        JSON.stringify(steps),       // Convert steps to a JSON string
+      ]
     );
     res.status(201).json(newRecipe.rows[0]);
   } catch (err) {
