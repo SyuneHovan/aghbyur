@@ -8,23 +8,28 @@ const app = express();
 // Increase the JSON payload limit for images and complex recipes
 app.use(express.json({ limit: '5mb' }));
 
-// Create a new PostgreSQL connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+// Pool for the Ojakh (recipes) database
+const ojakhPool = new Pool({
+  connectionString: process.env.OJAKH_DATABASE_URL, // Use a specific env variable
+});
+
+// Pool for the NVAG (chords) database
+const nvagPool = new Pool({
+  connectionString: process.env.NVAG_DATABASE_URL, // Use a specific env variable
 });
 
 // A simple route to test that the server is working
 app.get('/', (req, res) => {
-  res.send('Welcome to the Krakaran Recipe API!');
+  res.send('Welcome to the Ojakh Recipe API!');
 });
 
-// --- KRAKARAN ---
+// --- OJAKH ---
 
 // CREATE: Add a new recipe
-app.post('/recipes', async (req, res) => {
+app.post('ojakh/recipes', async (req, res) => {
   try {
     const { title, category, cover_image_url, ingredients, steps } = req.body;
-    const newRecipe = await pool.query(
+    const newRecipe = await ojakhPool.query(
       "INSERT INTO recipes (title, category, cover_image_url, ingredients, steps) VALUES($1, $2, $3, $4, $5) RETURNING *",
       [
         title,
@@ -42,10 +47,10 @@ app.post('/recipes', async (req, res) => {
 });
 
 // READ: Get all recipes (just main fields, not full details)
-app.get('/recipes', async (req, res) => {
+app.get('ojakh/recipes', async (req, res) => {
   try {
     // We only select key fields for the list view to keep it fast
-    const allRecipes = await pool.query("SELECT id, title, category, cover_image_url FROM recipes ORDER BY created_at DESC");
+    const allRecipes = await ojakhPool.query("SELECT id, title, category, cover_image_url FROM recipes ORDER BY created_at DESC");
     res.json(allRecipes.rows);
   } catch (err) {
     console.error(err.message);
@@ -54,10 +59,10 @@ app.get('/recipes', async (req, res) => {
 });
 
 // READ: Get a single recipe by ID (with all details)
-app.get('/recipes/:id', async (req, res) => {
+app.get('ojakh/recipes/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const recipeResult = await pool.query("SELECT * FROM recipes WHERE id = $1", [id]);
+    const recipeResult = await ojakhPool.query("SELECT * FROM recipes WHERE id = $1", [id]);
 
     if (recipeResult.rows.length === 0) {
       return res.status(404).send("Recipe not found.");
@@ -73,10 +78,10 @@ app.get('/recipes/:id', async (req, res) => {
 });
 
 // READ: Get all unique categories
-app.get('/categories', async (req, res) => {
+app.get('ojakh/categories', async (req, res) => {
   try {
     // This SQL query selects each unique category only once
-    const categoryResult = await pool.query(
+    const categoryResult = await ojakhPool.query(
       "SELECT DISTINCT category FROM recipes WHERE category IS NOT NULL AND category <> '' ORDER BY category ASC"
     );
     // The result is an array of objects, so we map it to a simple array of strings
@@ -89,13 +94,13 @@ app.get('/categories', async (req, res) => {
 });
 
 // UPDATE: Edit a recipe by ID
-app.put('/recipes/:id', async (req, res) => {
+app.put('ojakh/recipes/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { title, category, cover_image_url, ingredients, steps } = req.body;
 
     // The fix is to explicitly stringify the JSON fields
-    const updateRecipe = await pool.query(
+    const updateRecipe = await ojakhPool.query(
       "UPDATE recipes SET title = $1, category = $2, cover_image_url = $3, ingredients = $4, steps = $5 WHERE id = $6 RETURNING *",
       [
         title,
@@ -118,10 +123,10 @@ app.put('/recipes/:id', async (req, res) => {
 });
 
 // DELETE: Remove a recipe by ID
-app.delete('/recipes/:id', async (req, res) => {
+app.delete('ojakh/recipes/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const deleteRecipe = await pool.query("DELETE FROM recipes WHERE id = $1 RETURNING *", [id]);
+    const deleteRecipe = await ojakhPool.query("DELETE FROM recipes WHERE id = $1 RETURNING *", [id]);
     if (deleteRecipe.rows.length === 0) {
       return res.status(404).send("Recipe not found.");
     }
@@ -138,7 +143,7 @@ app.delete('/recipes/:id', async (req, res) => {
 app.get('/nvag/chords', async (req, res) => {
   try {
     // Query the database to get all rows from the 'chords' table
-    const allChords = await pool.query("SELECT * FROM chords ORDER BY name ASC");
+    const allChords = await nvagPool.query("SELECT * FROM chords ORDER BY name ASC");
     
     // Send the results back as a JSON response
     res.status(200).json(allChords.rows);
