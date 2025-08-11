@@ -18,6 +18,8 @@ app.get('/', (req, res) => {
   res.send('Welcome to the Krakaran Recipe API!');
 });
 
+// --- KRAKARAN ---
+
 // CREATE: Add a new recipe
 app.post('/recipes', async (req, res) => {
   try {
@@ -126,6 +128,23 @@ app.delete('/recipes/:id', async (req, res) => {
     res.json({ message: "Recipe deleted successfully" });
   } catch (err) {
     console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
+// --- NVAG ---
+
+// GET: Fetch all chords from the database
+app.get('/nvag/chords', async (req, res) => {
+  try {
+    // Query the database to get all rows from the 'chords' table
+    const allChords = await pool.query("SELECT * FROM chords ORDER BY name ASC");
+    
+    // Send the results back as a JSON response
+    res.status(200).json(allChords.rows);
+
+  } catch (err) {
+    console.error("Error fetching chords:", err.message);
     res.status(500).send("Server Error");
   }
 });
