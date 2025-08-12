@@ -165,18 +165,21 @@ app.post('/ojakh/recipes/find-by-ingredients', async (req, res) => {
     if (!myIngredients || myIngredients.length === 0) {
       return res.json([]);
     }
-
     const query = `
-      SELECT r.*,
-        (SELECT COUNT(*) FROM recipe_ingredients WHERE recipe_id = r.id) as required_count
+      SELECT
+        r.id,
+        r.title,
+        r.category,
+        r.cover_image_url,
+        COUNT(i.id) AS match_count
       FROM recipes r
       JOIN recipe_ingredients ri ON r.id = ri.recipe_id
       JOIN ingredients i ON ri.ingredient_id = i.id
       WHERE i.name = ANY($1::text[])
-      GROUP BY r.id
-      HAVING COUNT(i.id) = (SELECT COUNT(*) FROM recipe_ingredients WHERE recipe_id = r.id);
+      GROUP BY r.id, r.title, r.category, r.cover_image_url
+      ORDER BY match_count DESC, r.title ASC;
     `;
-    
+
     const recipesResult = await ojakhPool.query(query, [myIngredients]);
     res.json(recipesResult.rows);
 
@@ -217,3 +220,10 @@ app.get('/nvag/chords', async (req, res) => {
 });
 
 module.exports = app;
+
+if (require.main === module) {
+  const port = process.env.PORT || 3001; // Use port 3001 for local dev
+  app.listen(port, () => {
+    console.log(`🚀 Server running locally on http://localhost:${port}`);
+  });
+}
