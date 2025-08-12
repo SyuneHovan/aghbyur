@@ -160,7 +160,7 @@ app.get('/ojakh/ingredients', async (req, res) => {
 
 
 // --- FIND RECIPES BY INGREDIENTS (Smart Search) ---
-app.post('/recipes/find-by-ingredients', async (req, res) => {
+app.post('/ojakh/recipes/find-by-ingredients', async (req, res) => {
   try {
     const { myIngredients } = req.body;
     if (!myIngredients || myIngredients.length === 0) {
@@ -180,6 +180,21 @@ app.post('/recipes/find-by-ingredients', async (req, res) => {
 
     const recipesResult = await ojakhPool.query(query, [myIngredients]);
     res.json(recipesResult.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
+app.get('/ojakh/categories', async (req, res) => {
+  try {
+    // This SQL query selects each unique category only once
+    const categoryResult = await ojakhPool.query(
+      "SELECT DISTINCT category FROM recipes WHERE category IS NOT NULL AND category <> '' ORDER BY category ASC"
+    );
+    // The result is an array of objects, so we map it to a simple array of strings
+    const categories = categoryResult.rows.map(row => row.category);
+    res.json(categories);
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
