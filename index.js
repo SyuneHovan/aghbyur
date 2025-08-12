@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
 // --- OJAKH ---
 
 // CREATE: Add a new recipe
-app.post('ojakh/recipes', async (req, res) => {
+app.post('/ojakh/recipes', async (req, res) => {
   try {
     const { title, category, cover_image_url, ingredients, steps } = req.body;
     const newRecipe = await ojakhPool.query(
@@ -47,7 +47,7 @@ app.post('ojakh/recipes', async (req, res) => {
 });
 
 // READ: Get all recipes (just main fields, not full details)
-app.get('ojakh/recipes', async (req, res) => {
+app.get('/ojakh/recipes', async (req, res) => {
   try {
     // We only select key fields for the list view to keep it fast
     const allRecipes = await ojakhPool.query("SELECT id, title, category, cover_image_url FROM recipes ORDER BY created_at DESC");
@@ -59,7 +59,7 @@ app.get('ojakh/recipes', async (req, res) => {
 });
 
 // READ: Get a single recipe by ID (with all details)
-app.get('ojakh/recipes/:id', async (req, res) => {
+app.get('/ojakh/recipes/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const recipeResult = await ojakhPool.query("SELECT * FROM recipes WHERE id = $1", [id]);
@@ -78,7 +78,7 @@ app.get('ojakh/recipes/:id', async (req, res) => {
 });
 
 // READ: Get all unique categories
-app.get('ojakh/categories', async (req, res) => {
+app.get('/ojakh/categories', async (req, res) => {
   try {
     // This SQL query selects each unique category only once
     const categoryResult = await ojakhPool.query(
@@ -94,7 +94,7 @@ app.get('ojakh/categories', async (req, res) => {
 });
 
 // UPDATE: Edit a recipe by ID
-app.put('ojakh/recipes/:id', async (req, res) => {
+app.put('/ojakh/recipes/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { title, category, cover_image_url, ingredients, steps } = req.body;
@@ -123,7 +123,7 @@ app.put('ojakh/recipes/:id', async (req, res) => {
 });
 
 // DELETE: Remove a recipe by ID
-app.delete('ojakh/recipes/:id', async (req, res) => {
+app.delete('/ojakh/recipes/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const deleteRecipe = await ojakhPool.query("DELETE FROM recipes WHERE id = $1 RETURNING *", [id]);
