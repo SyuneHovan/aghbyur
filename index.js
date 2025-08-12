@@ -159,17 +159,13 @@ app.get('/ojakh/ingredients', async (req, res) => {
 });
 
 // --- FIND RECIPES BY INGREDIENTS (Smart Search) ---
-app.post('/recipes/find-by-ingredients', async (req, res) => {
+app.post('/ojakh/recipes/find-by-ingredients', async (req, res) => {
   try {
     const { myIngredients } = req.body;
     if (!myIngredients || myIngredients.length === 0) {
       return res.json([]);
     }
 
-    // This revised query is more reliable.
-    // It counts the ingredients for each recipe that match the user's list.
-    // It then compares that count to the total ingredients required for the recipe.
-    // If the counts match, it means the user has everything needed.
     const query = `
       SELECT r.*,
         (SELECT COUNT(*) FROM recipe_ingredients WHERE recipe_id = r.id) as required_count
@@ -180,8 +176,8 @@ app.post('/recipes/find-by-ingredients', async (req, res) => {
       GROUP BY r.id
       HAVING COUNT(i.id) = (SELECT COUNT(*) FROM recipe_ingredients WHERE recipe_id = r.id);
     `;
-
-    const recipesResult = await pool.query(query, [myIngredients]);
+    
+    const recipesResult = await ojakhPool.query(query, [myIngredients]);
     res.json(recipesResult.rows);
 
   } catch (err) {
