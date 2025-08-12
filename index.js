@@ -158,28 +158,32 @@ app.get('/ojakh/ingredients', async (req, res) => {
   }
 });
 
-
 // --- FIND RECIPES BY INGREDIENTS (Smart Search) ---
-app.post('/ojakh/recipes/find-by-ingredients', async (req, res) => {
+app.post('/recipes/find-by-ingredients', async (req, res) => {
   try {
     const { myIngredients } = req.body;
     if (!myIngredients || myIngredients.length === 0) {
       return res.json([]);
     }
 
+    // This revised query is more reliable.
+    // It counts the ingredients for each recipe that match the user's list.
+    // It then compares that count to the total ingredients required for the recipe.
+    // If the counts match, it means the user has everything needed.
     const query = `
-      SELECT r.*
+      SELECT r.*,
+        (SELECT COUNT(*) FROM recipe_ingredients WHERE recipe_id = r.id) as required_count
       FROM recipes r
-      WHERE NOT EXISTS (
-        SELECT 1
-        FROM recipe_ingredients ri
-        JOIN ingredients i ON ri.ingredient_id = i.id
-        WHERE ri.recipe_id = r.id AND i.name NOT IN (SELECT unnest($1::text[]))
-      );
+      JOIN recipe_ingredients ri ON r.id = ri.recipe_id
+      JOIN ingredients i ON ri.ingredient_id = i.id
+      WHERE i.name = ANY($1::text[])
+      GROUP BY r.id
+      HAVING COUNT(i.id) = (SELECT COUNT(*) FROM recipe_ingredients WHERE recipe_id = r.id);
     `;
 
-    const recipesResult = await ojakhPool.query(query, [myIngredients]);
+    const recipesResult = await pool.query(query, [myIngredients]);
     res.json(recipesResult.rows);
+
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
