@@ -206,10 +206,7 @@ app.get('/ojakh/categories', async (req, res) => {
 });
 
 // --- UPLOAD AN IMAGE ---
-// This endpoint receives a Base64 string and uploads it to Vercel Blob
 app.post('/ojakh/upload', async (req, res) => {
-  // The filename should be unique. Here we use the current timestamp.
-  // The body will contain a base64 string: "data:image/jpeg;base64,..."
   const { filename, body } = req.body;
 
   if (!body || !filename) {
