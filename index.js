@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
+const { put } = require('@vercel/blob');
 
 const app = express();
 app.use(express.json({ limit: '5mb' }));
@@ -201,6 +202,33 @@ app.get('/ojakh/categories', async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
+  }
+});
+
+// --- UPLOAD AN IMAGE ---
+// This endpoint receives a Base64 string and uploads it to Vercel Blob
+app.post('/ojakh/upload', async (req, res) => {
+  // The filename should be unique. Here we use the current timestamp.
+  // The body will contain a base64 string: "data:image/jpeg;base64,..."
+  const { filename, body } = req.body;
+
+  if (!body || !filename) {
+    return res.status(400).send('Missing filename or image body.');
+  }
+
+  try {
+    const base64Data = body.split(';base64,').pop();
+
+    // Upload the file to Vercel Blob
+    const blob = await put(filename, Buffer.from(base64Data, 'base64'), {
+      access: 'public', // Make the file publicly accessible
+    });
+
+    res.status(200).json(blob);
+
+  } catch (err) {
+    console.error('Error uploading to Vercel Blob:', err);
+    res.status(500).send('Server error during file upload.');
   }
 });
 
